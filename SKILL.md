@@ -20,7 +20,7 @@ You never see the user's password, and you never receive any Meta (Facebook/Inst
 
 ## 2. Rules that never bend
 
-1. **No publishing without a clear yes.** Preparing a batch only saves a draft. Show the user every picture, caption, platform and time, ask plainly whether to publish, and wait for a clear yes **in this chat**. One yes covers one whole batch.
+1. **No publishing without a clear yes.** Preparing a batch only saves a draft. Show the user every picture, caption, platform and time, ask plainly whether to publish, and wait for a clear yes **in this chat**. One yes covers one whole batch. **The only exception is automatic publishing**, which the account owner (not you, not the user in the chat) can switch on: see section 4b.
 2. **A batch cannot be edited.** If the user wants a change, prepare a **new** batch and cancel the old one.
 3. **The server is the judge**, not you. Never refuse or tell the user "the approval expired" because of a time you worked out yourself. When the user approves, call `echoo_publish_batch` (renew the token first if you no longer have it). Say a batch expired only when a tool says so.
 4. **Be honest about results.** Say "published" only for posts whose status is `published`. A status `simulated` (or mode `dry_run`) means a **test: nothing was posted**. Never claim a post is live unless a tool returned its link.
@@ -37,7 +37,9 @@ You never see the user's password, and you never receive any Meta (Facebook/Inst
 | `echoo_whoami` | no | Show which Echoo account is signed in. |
 | `echoo_publishing_status` | no | Read the mode (`dry_run` = test, `live`, `off`), the limits, the user's clock and time zone, and recent batches. **Call before planning.** |
 | `echoo_upload_images` | stores pictures | Hand over pictures from the chat (`files`, at most 5 per call). Returns an `image_id` per picture. |
-| `echoo_prepare_batch` | saves a **draft only** | Check a batch of 1 to 20 posts against the limits. Returns `batch_id`, `approval_token`, and the exact schedule. |
+| `echoo_create_upload_slot` | no | For picture **files on your own computer** that you cannot attach to the chat: gives 1 to 5 one-time upload addresses. |
+| `echoo_finish_uploads` | stores pictures | After you sent the files to those addresses (HTTP PUT): checks and stores them, returns an `image_id` for each. |
+| `echoo_prepare_batch` | saves a **draft only** | Check a batch of 1 to 20 posts or stories against the limits (each has a `kind`: `post` or `story`). Returns `batch_id`, `approval_token`, and the exact schedule. (With automatic publishing on it also approves and publishes, see 4b.) |
 | `echoo_renew_approval` | new token only | Get a fresh `approval_token` for a draft that is still waiting, when you lost the old one. |
 | `echoo_publish_batch` | **publishes** | Approve a prepared batch (needs `batch_id` and `approval_token`). Posts with no time go out during the call and their result comes back. |
 | `echoo_get_batch` | no | See a batch and the state of each post, with links or reasons. |
@@ -52,6 +54,8 @@ Statuses of a post: `draft`, `queued`, `working`, `published` (has a link), `sim
 **Step 2. Make the posts.** Write the captions and create or collect the pictures (sections 6 and 7).
 
 **Step 3. Hand over the pictures.** Call `echoo_upload_images` with `files` (the pictures attached to the chat or created in it). Keep the `image_id` of each. More than 5 pictures: call again.
+
+**Step 3b. Pictures that are files on your own computer** (you cannot attach them to the chat): **do not put them on GitHub or any website.** Call `echoo_create_upload_slot` (with `count`), send each file to its `upload_url` with an HTTP PUT (the picture bytes as the body, with its Content-Type; for example `curl -X PUT -H "Content-Type: image/png" --data-binary @poster.png "<upload_url>"`), then call `echoo_finish_uploads` with the `upload_id` values. You get the same `image_id` as above. Each address works once and for about 2 hours; PNG or JPEG, up to 12 MB.
 
 **Step 4. Prepare the batch.**
 ```json
@@ -69,6 +73,21 @@ Leave `publish_at` **out** unless the user gave a time or asked to schedule. A p
 **Step 6. Publish.** Only after a clear yes, call `echoo_publish_batch` with the `batch_id` and the `approval_token` from step 4. The answer already contains each post's `results` for posts due now. If you no longer have the token, call `echoo_renew_approval` first (if you also lost the `batch_id`, find the draft in `echoo_publishing_status`, section "recent batches").
 
 **Step 7. Report.** Tell the user, per post: published (with the link), simulated (test), or failed (with the reason, section 8). For scheduled posts, say when they will go out and use `echoo_get_batch` later to check.
+
+### Stories
+Each post has a `kind`: `"post"` (the default) is a picture post on the feed; `"story"` shows the picture **full screen for 24 hours** on Facebook and Instagram.
+- A story needs a **tall picture** (9:16, for example 1080 by 1920). A wide or square picture is refused with `story_image_ratio`: make a tall one, or post it as a normal post.
+- **A story carries no text**: the caption is not shown (do not rely on it), so put any words inside the picture. Instagram's AI label is not set on stories.
+- Posts and stories can be in the same batch and the same approval. Their limits are counted **separately**: a story does not use up the day's posts and does not wait for the gap after a post.
+- A story has no permanent link (it disappears after 24 hours): report it as published, without a link.
+- **Reels and videos are not available yet.** Say so plainly if the user asks; do not try to publish a video as a picture.
+
+### 4b. Automatic publishing (only when the account owner switched it on)
+`echoo_publishing_status` shows `auto_publish`. When it is **true**, the owner chose that posts go out without a yes in the chat. Then `echoo_prepare_batch` approves and publishes the batch **in the same call**: its answer has `auto_approved: true`, `status: "approved"` and the `results`.
+- **Do not ask for a yes and do not call `echoo_publish_batch`** (there is no token to use; the batch is already approved).
+- Still tell the user, right after, what was published or scheduled: each post, platform, time and link (or the reason it failed). Scheduled posts can still be stopped with `echoo_cancel_batch` until their time.
+- Everything else is unchanged: the same limits, the same quiet hours for scheduled posts, test mode still posts nothing, `off` still stops everything. Automatic does **not** mean "invent": publish only what the user asked for, with the facts the user gave.
+- If `auto_publish` is **false**, follow steps 5 and 6 above and ask for a clear yes. Never try to switch it on yourself; no tool can.
 
 ### Several posts ("make 10 posts today")
 Give `window` instead of a time for each post:
@@ -108,6 +127,8 @@ Echoo spreads the posts evenly across the window, skips quiet hours and keeps th
 | `published` + link | It is live. | Give the link. |
 | `paused` | The owner switched publishing off. | Do not retry. Tell the user the owner must switch it on in Echoo. |
 | `limits` (problems: `quiet_hours`, `spacing`, `daily_limit`, `time_in_past`, `too_far`) | The batch breaks a limit; nothing was saved. | Change the times or the number of posts, then prepare again. |
+| `story_image_ratio` | A story picture is not tall enough (it needs 9:16). | Make a tall picture, or post it as a normal post. |
+| `bad_kind` | The kind is not `post` or `story`. | Fix the kind. |
 | `ig_image_ratio` | The picture shape does not suit Instagram. | Use Facebook only for that post, or make another picture. |
 | `ig_too_many_hashtags` / `caption_too_long` | Caption too long or too many hashtags. | Shorten it. |
 | `account_not_connected` / `platform_not_connected` | Wrong `page_key`, or that Page has no Instagram. | Call `echoo_list_accounts` again; remove the platform or ask the user to connect it in Echoo. |
