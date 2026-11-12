@@ -3,9 +3,9 @@
 **English** · [العربية](#العربية)
 
 A **skill** is a page of instructions that an AI agent (ChatGPT, Claude, …) reads to learn how to do a job properly.
-This one teaches an agent how to use **Echoo**'s MCP server to prepare picture posts for your Facebook Pages and Instagram accounts and publish them **only after you approve in the chat**.
+This one teaches an agent how to use **Echoo**'s MCP server to prepare picture posts, stories and reels (videos) for your Facebook Pages and Instagram accounts and publish them **only after you approve in the chat**.
 
-[`SKILL.md`](SKILL.md) is the skill. It covers: how to connect, the rules that never bend (approval first, honest results, no tokens), every tool, the step-by-step workflow, times and limits, pictures (including Instagram's shape limits and the AI label), captions, how to read every result and error, and example conversations.
+[`SKILL.md`](SKILL.md) is the skill. It covers: how to connect, the rules that never bend (approval first, honest results, no tokens), every tool, the step-by-step workflow, times and limits, pictures and videos (including Instagram's shape limits and the AI label), stories and reels, captions, how to read every result and error, and example conversations.
 
 ## How to use it
 
@@ -35,9 +35,9 @@ This repository is not affiliated with Meta, OpenAI or Anthropic. Licensed under
 ## العربية
 
 **السكل (Skill)** صفحة تعليمات يقرؤها المساعد الذكي (ChatGPT أو Claude أو غيرهما) ليتعلّم كيف ينجز عملًا بشكل صحيح.
-هذا السكل يعلّم المساعد كيف يستعمل خادم **Echoo** (MCP) ليجهّز منشورات بالصور لصفحاتك على فيسبوك وحساباتك على إنستغرام، وينشرها **فقط بعد موافقتك داخل المحادثة**.
+هذا السكل يعلّم المساعد كيف يستعمل خادم **Echoo** (MCP) ليجهّز منشورات بالصور وستوري وريلز (فيديو) لصفحاتك على فيسبوك وحساباتك على إنستغرام، وينشرها **فقط بعد موافقتك داخل المحادثة**.
 
-الملف [`SKILL.md`](SKILL.md) هو السكل. فيه: طريقة الربط، والقواعد التي لا تُكسر (الموافقة أولًا، والصدق في النتائج، وعدم طلب الرموز)، وكل أداة، وخطوات العمل، والأوقات والحدود، والصور (وحدود شكل الصورة في إنستغرام وعلامة الذكاء الاصطناعي)، والنصوص، وكيف يقرأ كل نتيجة وخطأ، وأمثلة محادثات.
+الملف [`SKILL.md`](SKILL.md) هو السكل. فيه: طريقة الربط، والقواعد التي لا تُكسر (الموافقة أولًا، والصدق في النتائج، وعدم طلب الرموز)، وكل أداة، وخطوات العمل، والأوقات والحدود، والصور والفيديو (وحدود شكل الصورة في إنستغرام وعلامة الذكاء الاصطناعي)، والستوري والريلز، والنصوص، وكيف يقرأ كل نتيجة وخطأ، وأمثلة محادثات.
 
 ### كيف تستعمله
 

@@ -1,11 +1,11 @@
 ---
 name: echoo-publishing
-description: Publish picture posts to the user's Facebook Pages and Instagram accounts through Echoo (your Echoo provider). Use it when the user asks to create, schedule or publish posts, posters or captions on their Pages, or to check what was published. Covers connecting, the approval rules, times, pictures, captions, results and errors.
+description: Publish picture posts, stories and reels (pictures and videos) to the user's Facebook Pages and Instagram accounts through Echoo (your Echoo provider). Use it when the user asks to create, schedule or publish posts, posters, stories, reels, videos or captions on their Pages, or to check what was published. Covers connecting, the approval rules, times, pictures, videos, captions, results and errors.
 ---
 
 # Echoo: publishing playbook for AI agents
 
-You are connected (or about to be) to **Echoo**, run by **your Echoo provider**. Echoo lets you prepare picture posts for the user's Facebook Pages and Instagram professional accounts, show them to the user, and publish them **only after the user approves in the chat**. Read this whole page once, then follow it.
+You are connected (or about to be) to **Echoo**, run by **your Echoo provider**. Echoo lets you prepare picture posts, stories and reels (videos) for the user's Facebook Pages and Instagram professional accounts, show them to the user, and publish them **only after the user approves in the chat**. Read this whole page once, then follow it.
 
 - MCP server address: the address your Echoo provider shows you in the dashboard (it looks like `https://<project>.supabase.co/functions/v1/mcp`)
 - Answer in the user's language. Arabic is the default for this product (write natural, short Arabic; keep numbers and times readable).
@@ -37,9 +37,9 @@ You never see the user's password, and you never receive any Meta (Facebook/Inst
 | `echoo_whoami` | no | Show which Echoo account is signed in. |
 | `echoo_publishing_status` | no | Read the mode (`dry_run` = test, `live`, `off`), the limits, the user's clock and time zone, and recent batches. **Call before planning.** |
 | `echoo_upload_images` | stores pictures | Hand over pictures from the chat (`files`, at most 5 per call). Returns an `image_id` per picture. |
-| `echoo_create_upload_slot` | no | For picture **files on your own computer** that you cannot attach to the chat: gives 1 to 5 one-time upload addresses. |
-| `echoo_finish_uploads` | stores pictures | After you sent the files to those addresses (HTTP PUT): checks and stores them, returns an `image_id` for each. |
-| `echoo_prepare_batch` | saves a **draft only** | Check a batch of 1 to 20 posts or stories against the limits (each has a `kind`: `post` or `story`). Returns `batch_id`, `approval_token`, and the exact schedule. (With automatic publishing on it also approves and publishes, see 4b.) |
+| `echoo_create_upload_slot` | no | For picture or video **files on your own computer** that you cannot attach to the chat: gives 1 to 5 one-time upload addresses. |
+| `echoo_finish_uploads` | stores pictures and videos | After you sent the files to those addresses (HTTP PUT): checks and stores them, returns an `image_id` for each picture and a `video_id` for each video. |
+| `echoo_prepare_batch` | saves a **draft only** | Check a batch of 1 to 20 posts, stories or reels against the limits (each has a `kind`: `post`, `story` or `reel`). Returns `batch_id`, `approval_token`, and the exact schedule. (With automatic publishing on it also approves and publishes, see 4b.) |
 | `echoo_renew_approval` | new token only | Get a fresh `approval_token` for a draft that is still waiting, when you lost the old one. |
 | `echoo_publish_batch` | **publishes** | Approve a prepared batch (needs `batch_id` and `approval_token`). Posts with no time go out during the call and their result comes back. |
 | `echoo_get_batch` | no | See a batch and the state of each post, with links or reasons. |
@@ -55,7 +55,7 @@ Statuses of a post: `draft`, `queued`, `working`, `published` (has a link), `sim
 
 **Step 3. Hand over the pictures.** Call `echoo_upload_images` with `files` (the pictures attached to the chat or created in it). Keep the `image_id` of each. More than 5 pictures: call again.
 
-**Step 3b. Pictures that are files on your own computer** (you cannot attach them to the chat): **do not put them on GitHub or any website.** Call `echoo_create_upload_slot` (with `count`), send each file to its `upload_url` with an HTTP PUT (the picture bytes as the body, with its Content-Type; for example `curl -X PUT -H "Content-Type: image/png" --data-binary @poster.png "<upload_url>"`), then call `echoo_finish_uploads` with the `upload_id` values. You get the same `image_id` as above. Each address works once and for about 2 hours; PNG or JPEG, up to 12 MB.
+**Step 3b. Pictures that are files on your own computer** (you cannot attach them to the chat): **do not put them on GitHub or any website.** Call `echoo_create_upload_slot` (with `count`), send each file to its `upload_url` with an HTTP PUT (the picture bytes as the body, with its Content-Type; for example `curl -X PUT -H "Content-Type: image/png" --data-binary @poster.png "<upload_url>"`), then call `echoo_finish_uploads` with the `upload_id` values. You get the same `image_id` as above. Each address works once and for about 2 hours; a picture is PNG or JPEG up to 12 MB (for a video file see "Reels and video stories" below).
 
 **Step 4. Prepare the batch.**
 ```json
@@ -75,7 +75,7 @@ Leave `publish_at` **out** unless the user gave a time or asked to schedule. A p
 **Step 7. Report.** Tell the user, per post: published (with the link), simulated (test), or failed (with the reason, section 8). For scheduled posts, say when they will go out and use `echoo_get_batch` later to check.
 
 ### Stories
-Each post has a `kind`: `"post"` (the default) is a picture post on the feed; `"story"` shows the picture **full screen for 24 hours** on Facebook and Instagram.
+Each post has a `kind`: `"post"` (the default) is a picture post on the feed; `"story"` shows a picture (or a video, see below) **full screen for 24 hours** on Facebook and Instagram; `"reel"` is a video (see "Reels and video stories" below).
 - A story needs a **tall picture** (9:16, for example 1080 by 1920). A wide or square picture is refused with `story_image_ratio`: make a tall one, or post it as a normal post.
 - **A story carries no text**: the caption is not shown (do not rely on it), so put any words inside the picture. Instagram's AI label is not set on stories.
 - Posts and stories can be in the same batch and the same approval. Their limits are counted **separately**: a story does not use up the day's posts and does not wait for the gap after a post.
