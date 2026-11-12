@@ -80,7 +80,12 @@ Each post has a `kind`: `"post"` (the default) is a picture post on the feed; `"
 - **A story carries no text**: the caption is not shown (do not rely on it), so put any words inside the picture. Instagram's AI label is not set on stories.
 - Posts and stories can be in the same batch and the same approval. Their limits are counted **separately**: a story does not use up the day's posts and does not wait for the gap after a post.
 - A story has no permanent link (it disappears after 24 hours): report it as published, without a link.
-- **Reels and videos are not available yet.** Say so plainly if the user asks; do not try to publish a video as a picture.
+### Reels and video stories (videos)
+- A **reel** is a **tall (9:16) video of 3 to 90 seconds** with a caption, shown on Facebook Reels and Instagram Reels (`"kind": "reel"`, with a `video_id` instead of an `image_id`). A **story** may also be a video, of 3 to 60 seconds, with no text. A normal post stays a picture.
+- **The video file reaches Echoo the same direct way as a picture file:** `echoo_create_upload_slot`, an HTTP PUT of the file (for example `curl -X PUT -H "Content-Type: video/mp4" --data-binary @clip.mp4 "<upload_url>"`), then `echoo_finish_uploads`, whose answer gives a `video_id` (and the real width, height and length).
+- **Echoo never converts a video**, so it must already be right: **MP4 or MOV, H.264 or H.265 video, AAC sound, 9:16 (for example 1080 by 1920; at least 540 and at most 1920 pixels wide), the index at the front of the file, up to 50 MB.** If it is not, `echoo_finish_uploads` says exactly what to fix (for example: re-save it with `ffmpeg -i in.mp4 -c:v libx264 -c:a aac -movflags +faststart out.mp4`). Do that on the user's computer if you can, and upload again.
+- A video takes longer to publish than a picture (Facebook and Instagram process it first: seconds to a few minutes). Right after approval a reel may still be **queued** or **working**; use `echoo_get_batch` later and report it as published only when its status is `published`. A reel has a link; a video story has none.
+- At most 10 videos wait at a time and 5 may be uploaded an hour; they are removed 3 days after upload.
 
 ### 4b. Automatic publishing (only when the account owner switched it on)
 `echoo_publishing_status` shows `auto_publish`. When it is **true**, the owner chose that posts go out without a yes in the chat. Then `echoo_prepare_batch` approves and publishes the batch **in the same call**: its answer has `auto_approved: true`, `status: "approved"` and the `results`.
@@ -127,7 +132,11 @@ Echoo spreads the posts evenly across the window, skips quiet hours and keeps th
 | `published` + link | It is live. | Give the link. |
 | `paused` | The owner switched publishing off. | Do not retry. Tell the user the owner must switch it on in Echoo. |
 | `limits` (problems: `quiet_hours`, `spacing`, `daily_limit`, `time_in_past`, `too_far`) | The batch breaks a limit; nothing was saved. | Change the times or the number of posts, then prepare again. |
-| `story_image_ratio` | A story picture is not tall enough (it needs 9:16). | Make a tall picture, or post it as a normal post. |
+| `story_image_ratio` | A story, reel or its picture or video is not tall enough (it needs 9:16). | Make a tall one, or post it as a normal post. |
+| `media_kind` | The post carries the wrong file for its kind (a normal post needs an `image_id`, a reel a `video_id`, a story either, never both). | Fix the `image_id` or `video_id`. |
+| `video_duration` | A reel must last 3 to 90 seconds, a video story 3 to 60. | Use a video of the right length. |
+| `video_quota` / `video_rate` | Too many videos uploaded (10 waiting, 5 an hour). | Wait, or publish the ones already uploaded. |
+| `bad_video` | The video type is not accepted. | Make an MP4 with H.264 video and AAC sound. |
 | `bad_kind` | The kind is not `post` or `story`. | Fix the kind. |
 | `ig_image_ratio` | The picture shape does not suit Instagram. | Use Facebook only for that post, or make another picture. |
 | `ig_too_many_hashtags` / `caption_too_long` | Caption too long or too many hashtags. | Shorten it. |
